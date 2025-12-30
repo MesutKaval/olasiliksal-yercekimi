@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="tr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Olasılıksal Yerçekimi Simülasyonu</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="container">
+        <canvas id="glCanvas" width="1000" height="1000"></canvas>
+        <div class="sidebar">
+            <h1>Olasılıksal Yerçekimi Simülasyonu</h1>
+            <div class="info">
+                <p>WebGL2 - GLSL ES 3.00</p>
+            </div>
+
+            <div class="controls">
+                <div class="control-group">
+                    <label for="particleCount">Parçacık Sayısı: <span id="particleCountVal">100</span></label>
+                    <input type="range" id="particleCount" min="100" max="500000" step="1000" value="100">
+                </div>
+
+                <div class="control-group">
+                    <label for="updateSpeed">Hız (ms): <span id="updateSpeedVal">10</span></label>
+                    <input type="range" id="updateSpeed" min="1" max="1000" step="1" value="10">
+                </div>
+
+                <div class="control-group">
+                    <button id="gravityBtn" class="toggle-btn">Yerçekimi: Kapalı</button>
+                    <button id="clearGravityBtn" style="margin-top: 5px;">Çekim Noktalarını Temizle</button>
+                </div>
+
+                <div class="control-group">
+                    <label for="gravityType">Çekim Tipi:</label>
+                    <select id="gravityType" class="select-input">
+                        <option value="attract">Çekici (Kırmızı) ●</option>
+                        <option value="repulse">İtici (Mavi) ●</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <label>
+                        <input type="checkbox" id="counterToggle"> Sayaç Modu
+                    </label>
+                    <div id="counterControls" style="display:none; margin-top: 10px;">
+                        <label for="counterRadius">Yarıçap: <span id="counterRadiusVal">100</span>px</label>
+                        <input type="range" id="counterRadius" min="20" max="500" value="100">
+                        <div style="margin-top: 5px; color: #4a9eff; font-weight: bold;">
+                            Sayı: <span id="particleCountDisplay">0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label for="gravityStrength">Çekim Gücü: <span id="gravityStrengthVal">200</span></label>
+                    <input type="range" id="gravityStrength" min="10" max="1000" step="10" value="200">
+                </div>
+
+                <div class="button-group">
+                    <button id="toggleBtn">Başlat</button>
+                    <button id="restartBtn">Yeniden Başlat</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="main.js"></script>
+</body>
+
+</html>
