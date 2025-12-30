@@ -250,23 +250,29 @@ function render() {
 
     gl.disableVertexAttribArray(positionLoc);
 
-    // 2. Draw Gravity Points
-    if (gravityObjects.length > 0) {
-        // ... (existing gravity drawing code) ...
-        gl.uniform1f(pointSizeLoc, 6.0);
+    // 2. Draw Gravity Points (if visible)
+    if (showGravityPoints && gravityObjects.length > 0) {
+        gl.disableVertexAttribArray(positionLoc);
+        gl.uniform1f(pointSizeLoc, 6.0); // Bigger dots
+
         for (const obj of gravityObjects) {
             let r, g, b;
+
             if (obj.type === 'repulse') {
-                if (isGravityActive) { r = 0.0; g = 0.5; b = 1.0; }
-                else { r = 0.0; g = 0.2; b = 0.4; }
+                // Blue
+                if (isGravityActive) { r = 0.0; g = 0.5; b = 1.0; } // Active Blue
+                else { r = 0.0; g = 0.2; b = 0.4; } // Dark Blue
             } else {
-                if (isGravityActive) { r = 1.0; g = 0.0; b = 0.0; }
-                else { r = 0.3; g = 0.0; b = 0.0; }
+                // Red (Attract)
+                if (isGravityActive) { r = 1.0; g = 0.0; b = 0.0; } // Active Red
+                else { r = 0.3; g = 0.0; b = 0.0; } // Dark Red
             }
+
             gl.uniform4f(colorLoc, r, g, b, 1.0);
             gl.vertexAttrib2f(positionLoc, obj.x, obj.y);
             gl.drawArrays(gl.POINTS, 0, 1);
         }
+
         gl.enableVertexAttribArray(positionLoc);
     }
 
@@ -384,6 +390,15 @@ counterRadiusSlider.addEventListener('input', (e) => {
         countParticles();
         render();
     }
+});
+
+// Show/Hide Points Logic
+let showGravityPoints = true;
+const showPointsCheckbox = document.getElementById('showPointsFunc');
+
+showPointsCheckbox.addEventListener('change', (e) => {
+    showGravityPoints = e.target.checked;
+    if (!isRunning) render();
 });
 
 // Interaction Logic
