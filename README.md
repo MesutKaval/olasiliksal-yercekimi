@@ -200,12 +200,3 @@ if (y >= canvas.height) y = canvas.height - 1;
 
 **Mesut Kaval** tarafından yapay zeka yardımıyla oluşturulmuştur.
 - GitHub: [@MesutKaval](https://github.com/MesutKaval)
-
-## 🙏 Teşekkürler
-
-- WebGL2 dokümantasyonu için [MDN Web Docs](https://developer.mozilla.org/)
-- Shader referansları için [WebGL2 Fundamentals](https://webgl2fundamentals.org/)
-
----
-
-⭐ Bu projeyi beğendiyseniz yıldız vermeyi unutmayın!
