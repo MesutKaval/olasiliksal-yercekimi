@@ -402,8 +402,11 @@ showPointsCheckbox.addEventListener('change', (e) => {
 });
 
 // Interaction Logic
+let isDraggingPoint = false;
+let activeDragPoint = null;
+
 canvas.addEventListener('mousedown', (e) => {
-    if (e.button !== 0) return; // Only process left click for adding points
+    if (e.button !== 0) return; // Only process left click
 
     const rect = canvas.getBoundingClientRect();
     const scaleX = canvas.width / rect.width;
@@ -412,11 +415,43 @@ canvas.addEventListener('mousedown', (e) => {
     const x = (e.clientX - rect.left) * scaleX;
     const y = (e.clientY - rect.top) * scaleY;
 
-    const type = gravityTypeSelect.value; // 'attract' or 'repulse'
+    const type = gravityTypeSelect.value;
 
-    gravityObjects.push({ type, x, y });
+    // Create new point
+    const newPoint = { type, x, y };
+    gravityObjects.push(newPoint);
+
+    // Start dragging this new point
+    isDraggingPoint = true;
+    activeDragPoint = newPoint;
 
     if (!isRunning) render();
+});
+
+canvas.addEventListener('mousemove', (e) => {
+    const pos = getMousePos(e);
+
+    // 1. Update Counter Mouse Pos
+    if (isCounterActive) {
+        mousePos = pos;
+    }
+
+    // 2. Drag Active Point (Live Gravity)
+    if (isDraggingPoint && activeDragPoint) {
+        activeDragPoint.x = pos.x;
+        activeDragPoint.y = pos.y;
+    }
+
+    // Re-render if paused (to show movement)
+    if (!isRunning && (isCounterActive || isDraggingPoint)) {
+        if (isCounterActive) countParticles();
+        render();
+    }
+});
+
+canvas.addEventListener('mouseup', () => {
+    isDraggingPoint = false;
+    activeDragPoint = null;
 });
 
 // Canvas Interaction: Right-click to delete gravity point
@@ -442,14 +477,6 @@ canvas.addEventListener('contextmenu', (e) => {
         gravityObjects.splice(indexToRemove, 1);
         if (!isRunning) render();
     }
-});
-
-canvas.addEventListener('mousemove', (e) => {
-    // No longer needed for drawing geometric shapes
-});
-
-canvas.addEventListener('mouseup', () => {
-    // No longer needed for drawing geometric shapes
 });
 
 // UI Event Listeners
