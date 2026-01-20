@@ -1,5 +1,7 @@
 # 🌌 Olasılıksal Yerçekimi Simülasyonu
 
+[Canlı Demo](https://MesutKaval.github.io/olasiliksal-yercekimi/)
+
 WebGL2 tabanlı, etkileşimli parçacık simülasyonu. Parçacıklar olasılıksal bir algoritmaya göre hareket eder ve kullanıcı tarafından oluşturulan çekim/itme noktalarına tepki verir.
 
 ![WebGL2](https://img.shields.io/badge/WebGL2-990000?style=for-the-badge&logo=webgl&logoColor=white)
