@@ -34,6 +34,15 @@ WebGL2 tabanlı, etkileşimli parçacık simülasyonu. Parçacıklar olasılıks
 - **Sağ Tık Silme**: İstenmeyen noktaları sağ tıklayarak kaldırabilme
 - **Ayarlanabilir Güç**: Çekim/itme gücünü 10-1000 arası değiştirme
 - **Görünürlük Kontrolü**: Çekim noktalarını gösterme/gizleme
+- **Dot Product Tabanlı Ağırlıklandırma**: Normalize edilmiş yön vektörü ve iç çarpım ile tüm 8 komşuya orantılı ağırlık verilir. Bu sayede parçacıklar çekim/itim noktalarının eksenlerinde birikmez
+
+### 🔬 Parçacık Etkileşimi (Spatial Grid)
+- **Parçacık Çekimi**: Her parçacık diğer parçacıkları kendine çeker
+- **Parçacık İtimi**: Her parçacık diğer parçacıkları kendinden iter
+- **Eşzamanlı Kullanım**: Çekim ve itim aynı anda aktif olabilir
+- **Ayarlanabilir Güç**: Etkileşim gücünü 1-200 arası ayarlama
+- **Yerçekimi Bağımlı**: Sadece yerçekimi açıkken aktif olur
+- **Spatial Grid Algoritması**: O(N) karmaşıklığı ile verimli parçacık etkileşimi. Canvas 20x20 piksellik hücrelere bölünür, her parçacık sadece yakın hücrelerdeki parçacıkların kütle merkezine göre etkilenir
 
 ### 📊 Sayaç Modu
 - **Bölgesel Sayım**: Fare imleci etrafında belirli bir yarıçaptaki parçacıkları sayma
@@ -44,9 +53,10 @@ WebGL2 tabanlı, etkileşimli parçacık simülasyonu. Parçacıklar olasılıks
 ### 🎯 Olasılıksal Hareket Algoritması
 Parçacıklar, komşu hücrelere geçiş yaparken ağırlıklı rastgele seçim kullanır:
 - Yerçekimi kapalıyken: Her yön eşit olasılıkta (1/8)
-- Yerçekimi açıkken: Çekim noktalarına yakın yönlere daha yüksek olasılık atanır
-- Mesafe bazlı ağırlıklandırma: `ağırlık = (güç × 5.0) / mesafe`
+- Yerçekimi açıkken: Normalize edilmiş yön vektörü ve dot product ile tüm 8 komşuya orantılı ağırlık verilir
+- Mesafe bazlı ağırlıklandırma: `ağırlık += (güç × 5.0) / mesafe × dot(yön, komşu)`
 - Birden fazla çekim noktası olduğunda tüm etkiler birleştirilir
+- Parçacık etkileşimi aktifken spatial grid üzerinden yakın hücrelerin kütle merkezi hesaplanır
 
 ## 🚀 Kullanım
 
@@ -94,6 +104,12 @@ Tarayıcınızda `http://localhost:8000` adresini açın.
    - Fareyi canvas üzerinde hareket ettirin
    - Yeşil çember içindeki parçacık sayısını görün
 
+5. **Parçacık Etkileşimi**
+   - "Parçacık Çekimi" ve/veya "Parçacık İtimi" kutucuğunu işaretleyin
+   - "Yerçekimi: Açık" butonuyla yerçekimini aktifleştirin
+   - Güç slider'ı ile etkileşim şiddetini ayarlayın
+   - Çekim ve itim aynı anda aktif olabilir
+
 ## 🛠️ Teknik Detaylar
 
 ### Teknoloji Yığını
@@ -108,6 +124,7 @@ Tarayıcınızda `http://localhost:8000` adresini açın.
 - **Bounding Box Kontrolü**: Sayaç modunda gereksiz mesafe hesaplamalarını önleme
 - **RequestAnimationFrame**: Tarayıcı refresh rate'ine senkronize animasyon
 - **Conditional Rendering**: Sadece gerektiğinde yeniden çizim
+- **Spatial Grid**: Parçacık etkileşiminde O(N²) yerine O(N) karmaşıklığı. Canvas 20x20px hücrelere bölünerek her parçacık yalnızca 5x5 komşu hücredeki kütle merkezine göre hesaplanır
 
 ### Dosya Yapısı
 ```
@@ -146,7 +163,8 @@ h1 {
 ```javascript
 let particleCount = 100;        // Başlangıç parçacık sayısı
 let updateInterval = 10;        // Güncelleme hızı (ms)
-let gravityStrengthBase = 200.0; // Çekim gücü
+let gravityStrengthBase = 200.0; // Çekim noktası gücü
+let particleGravityStrength = 50.0; // Parçacık etkileşim gücü
 ```
 
 ### Canvas Boyutunu Değiştirme
@@ -168,11 +186,17 @@ Her parçacık için 8 komşu hücre vardır:
 
 ### Ağırlık Hesaplama
 1. Başlangıç: Her komşu `ağırlık = 1`
-2. Her çekim noktası için:
-   - Parçacıktan noktaya yön vektörü hesapla
-   - Hedef komşu hücreyi belirle
-   - Ağırlığı artır: `ağırlık += (güç × 5.0) / mesafe`
-3. Toplam ağırlığa göre rastgele seçim yap
+2. **Kullanıcı çekim noktaları** için:
+   - Parçacıktan noktaya yön vektörünü normalize et
+   - Tüm 8 komşu için dot product hesapla: `dot = dirX × dx + dirY × dy`
+   - `dot > 0` olan komşulara ağırlık ekle: `ağırlık += (güç × 5.0) / mesafe × dot`
+3. **Parçacık etkileşimi** için (Spatial Grid):
+   - Parçacığın bulunduğu hücre ve 5x5 komşu hücreleri kontrol et
+   - Her hücrenin kütle merkezini hesapla
+   - Çekim: kütle merkezine doğru dot product ile ağırlıklandır
+   - İtim: kütle merkezinden uzağa doğru dot product ile ağırlıklandır
+   - Güç formülü: `güç = (strength × parçacık_sayısı) / mesafe²`
+4. Toplam ağırlığa göre rastgele seçim yap
 
 ### Sınır Koşulları
 Parçacıklar canvas sınırlarında kalır:
