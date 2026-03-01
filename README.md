@@ -60,12 +60,15 @@ Parçacıklar, komşu hücrelere geçiş yaparken ağırlıklı rastgele seçim 
 
 ## 🚀 Kullanım
 
+### Canlı Demo
+Kurulum yapmadan doğrudan tarayıcıda deneyin: [https://MesutKaval.github.io/olasiliksal-yercekimi/](https://MesutKaval.github.io/olasiliksal-yercekimi/)
+
 ### Kurulum
 Projeyi klonlayın ve herhangi bir web sunucusu ile çalıştırın:
 
 ```bash
-git clone https://github.com/kullaniciadi/particle-simulation.git
-cd particle-simulation
+git clone https://github.com/MesutKaval/olasiliksal-yercekimi.git
+cd olasiliksal-yercekimi
 ```
 
 Basit bir HTTP sunucusu başlatın:
