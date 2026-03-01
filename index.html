@@ -59,6 +59,22 @@
                 </div>
 
                 <div class="control-group">
+                    <label style="justify-content: flex-start; gap: 10px; cursor: pointer;">
+                        <input type="checkbox" id="particleGravityToggle"> Parçacık Çekimi
+                    </label>
+                    <label style="justify-content: flex-start; gap: 10px; cursor: pointer; margin-top: 5px;">
+                        <input type="checkbox" id="particleRepulseToggle"> Parçacık İtimi
+                    </label>
+                    <div id="particleInteractionControls" style="display:none; margin-top: 10px;">
+                        <label for="particleGravityStrength">Güç: <span id="particleGravityStrengthVal">50</span></label>
+                        <input type="range" id="particleGravityStrength" min="1" max="200" step="1" value="50">
+                        <div style="margin-top: 5px; color: #888; font-size: 0.8rem;">
+                            Yerçekimi açıkken aktif olur (Spatial Grid)
+                        </div>
+                    </div>
+                </div>
+
+                <div class="control-group">
                     <label for="gravityStrength">Çekim Gücü: <span id="gravityStrengthVal">200</span></label>
                     <input type="range" id="gravityStrength" min="10" max="1000" step="10" value="200">
                 </div>

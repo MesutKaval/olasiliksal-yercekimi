@@ -35,6 +35,43 @@ let isGravityActive = false;
 let gravityObjects = []; // Array of objects with type: 'point', 'line', 'polygon'
 let gravityStrengthBase = 200.0;
 
+// Particle Gravity (inter-particle attraction/repulsion) State
+let isParticleAttractEnabled = false;
+let isParticleRepulseEnabled = false;
+let particleGravityStrength = 50.0;
+const GRID_CELL_SIZE = 20; // pixels per grid cell
+let gridCols = 0;
+let gridRows = 0;
+let grid = null;       // Int32Array - flat grid storing particle counts per cell
+let gridMassX = null;  // Float32Array - sum of X positions per cell
+let gridMassY = null;  // Float32Array - sum of Y positions per cell
+
+function initGrid() {
+    gridCols = Math.ceil(canvas.width / GRID_CELL_SIZE);
+    gridRows = Math.ceil(canvas.height / GRID_CELL_SIZE);
+    const totalCells = gridCols * gridRows;
+    grid = new Int32Array(totalCells);
+    gridMassX = new Float32Array(totalCells);
+    gridMassY = new Float32Array(totalCells);
+}
+
+function buildGrid() {
+    grid.fill(0);
+    gridMassX.fill(0);
+    gridMassY.fill(0);
+
+    for (let i = 0; i < particleCount; i++) {
+        const px = particles[i * 2];
+        const py = particles[i * 2 + 1];
+        const col = Math.min(Math.floor(px / GRID_CELL_SIZE), gridCols - 1);
+        const row = Math.min(Math.floor(py / GRID_CELL_SIZE), gridRows - 1);
+        const idx = row * gridCols + col;
+        grid[idx]++;
+        gridMassX[idx] += px;
+        gridMassY[idx] += py;
+    }
+}
+
 // Interaction State
 let isDrawing = false;
 let drawStart = { x: 0, y: 0 };
@@ -139,6 +176,8 @@ function initSystem() {
     gl.bufferData(gl.ARRAY_BUFFER, particles, gl.DYNAMIC_DRAW);
 
     gl.viewport(0, 0, canvas.width, canvas.height);
+
+    initGrid();
 }
 
 function updateParticles() {
@@ -148,6 +187,12 @@ function updateParticles() {
         { dx: -1, dy: 1 }, { dx: 0, dy: 1 }, { dx: 1, dy: 1 }
     ];
 
+    // Build spatial grid if any particle interaction is active
+    const particleInteractionActive = isGravityActive && (isParticleAttractEnabled || isParticleRepulseEnabled);
+    if (particleInteractionActive) {
+        buildGrid();
+    }
+
     for (let i = 0; i < particleCount; i++) {
         let x = particles[i * 2];
         let y = particles[i * 2 + 1];
@@ -155,6 +200,7 @@ function updateParticles() {
         let weights = [1, 1, 1, 1, 1, 1, 1, 1];
         let totalWeight = 8;
 
+        // 1. User-placed gravity points
         if (isGravityActive && gravityObjects.length > 0) {
             for (const obj of gravityObjects) {
                 let gx = obj.x - x;
@@ -163,11 +209,9 @@ function updateParticles() {
 
                 if (dist < 1) dist = 1;
 
-                // Normalize direction toward gravity object
                 let dirX = gx / dist;
                 let dirY = gy / dist;
 
-                // Repulse: invert direction
                 if (obj.type === 'repulse') {
                     dirX = -dirX;
                     dirY = -dirY;
@@ -175,8 +219,6 @@ function updateParticles() {
 
                 let strength = (gravityStrengthBase * 5.0) / dist;
 
-                // Weight ALL 8 neighbors by how well they align with gravity direction
-                // dot product: dirX*dx + dirY*dy measures alignment (-1.41 to +1.41)
                 for (let k = 0; k < 8; k++) {
                     const dot = dirX * neighborOffsets[k].dx + dirY * neighborOffsets[k].dy;
                     if (dot > 0) {
@@ -184,6 +226,64 @@ function updateParticles() {
                     }
                 }
             }
+        }
+
+        // 2. Inter-particle gravity/repulsion via spatial grid
+        if (particleInteractionActive) {
+            const col = Math.min(Math.floor(x / GRID_CELL_SIZE), gridCols - 1);
+            const row = Math.min(Math.floor(y / GRID_CELL_SIZE), gridRows - 1);
+
+            // Check 5x5 neighborhood of grid cells for smoother influence
+            for (let dr = -2; dr <= 2; dr++) {
+                for (let dc = -2; dc <= 2; dc++) {
+                    const nr = row + dr;
+                    const nc = col + dc;
+                    if (nr < 0 || nr >= gridRows || nc < 0 || nc >= gridCols) continue;
+
+                    const cellIdx = nr * gridCols + nc;
+                    const count = grid[cellIdx];
+                    if (count === 0) continue;
+
+                    // Center of mass of this cell
+                    const cmx = gridMassX[cellIdx] / count;
+                    const cmy = gridMassY[cellIdx] / count;
+
+                    let gx = cmx - x;
+                    let gy = cmy - y;
+                    let dist = Math.hypot(gx, gy);
+
+                    if (dist < 1) continue; // Skip self / too close
+
+                    let dirX = gx / dist;
+                    let dirY = gy / dist;
+
+                    // Strength scales with particle count in cell, inversely with distance
+                    let strength = (particleGravityStrength * count) / (dist * dist);
+
+                    // Apply attract
+                    if (isParticleAttractEnabled) {
+                        for (let k = 0; k < 8; k++) {
+                            const dot = dirX * neighborOffsets[k].dx + dirY * neighborOffsets[k].dy;
+                            if (dot > 0) {
+                                weights[k] += strength * dot;
+                            }
+                        }
+                    }
+
+                    // Apply repulse (invert direction)
+                    if (isParticleRepulseEnabled) {
+                        for (let k = 0; k < 8; k++) {
+                            const dot = (-dirX) * neighborOffsets[k].dx + (-dirY) * neighborOffsets[k].dy;
+                            if (dot > 0) {
+                                weights[k] += strength * dot;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        if (isGravityActive || particleInteractionActive) {
             totalWeight = weights.reduce((a, b) => a + b, 0);
         }
 
@@ -383,6 +483,33 @@ counterRadiusSlider.addEventListener('input', (e) => {
         countParticles();
         render();
     }
+});
+
+// Particle Gravity UI Controls
+const particleGravityToggle = document.getElementById('particleGravityToggle');
+const particleRepulseToggle = document.getElementById('particleRepulseToggle');
+const particleInteractionControls = document.getElementById('particleInteractionControls');
+const particleGravityStrengthSlider = document.getElementById('particleGravityStrength');
+const particleGravityStrengthVal = document.getElementById('particleGravityStrengthVal');
+
+function updateParticleInteractionUI() {
+    const anyActive = isParticleAttractEnabled || isParticleRepulseEnabled;
+    particleInteractionControls.style.display = anyActive ? 'block' : 'none';
+}
+
+particleGravityToggle.addEventListener('change', (e) => {
+    isParticleAttractEnabled = e.target.checked;
+    updateParticleInteractionUI();
+});
+
+particleRepulseToggle.addEventListener('change', (e) => {
+    isParticleRepulseEnabled = e.target.checked;
+    updateParticleInteractionUI();
+});
+
+particleGravityStrengthSlider.addEventListener('input', (e) => {
+    particleGravityStrength = parseFloat(e.target.value);
+    particleGravityStrengthVal.textContent = e.target.value;
 });
 
 // Show/Hide Points Logic
