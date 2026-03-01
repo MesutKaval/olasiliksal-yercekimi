@@ -163,32 +163,25 @@ function updateParticles() {
 
                 if (dist < 1) dist = 1;
 
-                // Physics:
-                // Attract: Pull towards obj
-                // Repulse: Push away from obj (invert direction)
+                // Normalize direction toward gravity object
+                let dirX = gx / dist;
+                let dirY = gy / dist;
 
-                let sx = Math.sign(gx);
-                let sy = Math.sign(gy);
-
+                // Repulse: invert direction
                 if (obj.type === 'repulse') {
-                    sx = -sx;
-                    sy = -sy;
+                    dirX = -dirX;
+                    dirY = -dirY;
                 }
 
-                // Which neighbor is best?
-                let bestIdx = -1;
-                if (sx !== 0 || sy !== 0) {
-                    if (sy === -1) {
-                        if (sx === -1) bestIdx = 0; else if (sx === 0) bestIdx = 1; else bestIdx = 2;
-                    } else if (sy === 0) {
-                        if (sx === -1) bestIdx = 3; else if (sx === 1) bestIdx = 4;
-                    } else {
-                        if (sx === -1) bestIdx = 5; else if (sx === 0) bestIdx = 6; else bestIdx = 7;
+                let strength = (gravityStrengthBase * 5.0) / dist;
+
+                // Weight ALL 8 neighbors by how well they align with gravity direction
+                // dot product: dirX*dx + dirY*dy measures alignment (-1.41 to +1.41)
+                for (let k = 0; k < 8; k++) {
+                    const dot = dirX * neighborOffsets[k].dx + dirY * neighborOffsets[k].dy;
+                    if (dot > 0) {
+                        weights[k] += strength * dot;
                     }
-                }
-
-                if (bestIdx !== -1) {
-                    weights[bestIdx] += (gravityStrengthBase * 5.0) / dist;
                 }
             }
             totalWeight = weights.reduce((a, b) => a + b, 0);
